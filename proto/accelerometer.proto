@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package kvadra.accelerometer;
+
+service AccelerometerService {
+    rpc StreamAccelData(stream AccelPacket) returns (stream AccelModule);
+    rpc ProcessorStream(stream AccelModule) returns (stream AccelPacket);
+}
+
+// Данные от А
+message AccelPacket {
+    int64 timestamp = 1;
+    float x = 2;
+    float y = 3;
+    float z = 4;
+}
+
+// Данные от B
+message AccelModule {
+    int64 timestamp = 1;
+    float module = 2;
+}
