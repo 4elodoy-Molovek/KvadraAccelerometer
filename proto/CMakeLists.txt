@@ -23,4 +23,12 @@ add_library(accel_proto
 )
 
 target_include_directories(accel_proto PUBLIC "${PROTO_GEN_DIR}")
-target_link_libraries(accel_proto PUBLIC gRPC::grpc++ protobuf::libprotobuf)
+target_link_libraries(accel_proto PUBLIC 
+    gRPC::grpc++ 
+    protobuf::libprotobuf 
+    absl::cord 
+    absl::cordz_functions 
+    absl::cordz_info 
+    absl::strings 
+    absl::synchronization
+)
