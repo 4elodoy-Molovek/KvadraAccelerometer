@@ -35,8 +35,10 @@ grpc::Status AccelServiceImpl::StreamAccelData(grpc::ServerContext* context,
     filter_.reset();
     queue_to_node_a_.reset();
 
-    std::thread writer_thread([this, context, stream]() {
-        while (!context->IsCancelled()) {
+    std::atomic<bool> stream_active{true};
+
+    std::thread writer_thread([this, context, stream, &stream_active]() {
+        while (!context->IsCancelled() && stream_active.load()) {
             auto module_opt = queue_to_node_a_.pop(std::chrono::milliseconds(200));
             if (module_opt) {
                 if (!stream->Write(*module_opt)) break;
@@ -46,16 +48,23 @@ grpc::Status AccelServiceImpl::StreamAccelData(grpc::ServerContext* context,
 
     accelerometer::AccelPacket packet;
     while (stream->Read(&packet)) {
+        if (packet.version() != 1) {
+            std::cerr << "[Server] Пакет отброшен: неподдерживаемая версия протокола (" << packet.version() << ")\n";
+            continue;
+        }
+
         if (filter_.processAndCheck(packet.x(), packet.y(), packet.z())) {
             if (node_b_connected_.load()) {
                 queue_to_node_b_.push(packet);
             } else {
-                std::cerr << "[Server] Пакет отброшен. Node B не подключен.\n";
+                // std::cerr << "[Server] Пакет отброшен. Node B не подключен.\n";
             }
         }
     }
 
+    stream_active.store(false);
     writer_thread.join();
+    
     node_a_connected_ = false;
     std::cout << "[Node A] Отключен.\n";
     
@@ -77,8 +86,10 @@ grpc::Status AccelServiceImpl::ProcessorStream(grpc::ServerContext* context,
     std::cout << "[Node B] Подключен.\n";
     queue_to_node_b_.reset();
 
-    std::thread writer_thread([this, context, stream]() {
-        while (!context->IsCancelled()) {
+    std::atomic<bool> stream_active{true};
+
+    std::thread writer_thread([this, context, stream, &stream_active]() {
+        while (!context->IsCancelled() && stream_active.load()) {
             auto packet_opt = queue_to_node_b_.pop(std::chrono::milliseconds(200));
             if (packet_opt) {
                 if (!stream->Write(*packet_opt)) break;
@@ -93,7 +104,9 @@ grpc::Status AccelServiceImpl::ProcessorStream(grpc::ServerContext* context,
         }
     }
 
+    stream_active.store(false);
     writer_thread.join();
+    
     node_b_connected_ = false;
     std::cout << "[Node B] Отключен.\n";
 

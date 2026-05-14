@@ -38,7 +38,7 @@ int main(int argc, char** argv) {
     std::string cert_path = argv[4];
     std::string server_address = "0.0.0.0:" + port;
 
-    const std::string API_KEY = "super-secret-key-2026";
+    const std::string API_KEY = "super-secret-key";
 
     grpc::SslServerCredentialsOptions ssl_opts;
     ssl_opts.client_certificate_request = GRPC_SSL_REQUEST_AND_REQUIRE_CLIENT_CERTIFICATE_AND_VERIFY;

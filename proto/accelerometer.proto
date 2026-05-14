@@ -4,19 +4,19 @@ package kvadra.accelerometer;
 
 service AccelerometerService {
     rpc StreamAccelData(stream AccelPacket) returns (stream AccelModule);
-    rpc ProcessorStream(stream AccelModule) returns (stream AccelPacket);
+    rpc ProcessorStream(stream AccelModule) returns (stream AccelPacket); 
 }
 
-// Данные от А
 message AccelPacket {
-    int64 timestamp = 1;
-    float x = 2;
-    float y = 3;
-    float z = 4;
+    int32 version = 1;
+    int64 timestamp = 2;
+    float x = 3;
+    float y = 4;
+    float z = 5;
 }
 
-// Данные от B
 message AccelModule {
-    int64 timestamp = 1;
-    float module = 2;
+    int32 version = 1;
+    int64 timestamp = 2;
+    float module = 3;
 }

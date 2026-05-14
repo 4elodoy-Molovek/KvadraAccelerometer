@@ -1,3 +1,4 @@
+//ClientB_Core.cpp
 #include "ClientB_Core.h"
 #include "AuthInterceptor.h"
 #include "MathUtils.h"
@@ -22,7 +23,12 @@ ClientB_Core::ClientB_Core(const std::string& target_ip,
     ssl_opts.pem_private_key = client_key;
 
     auto creds = grpc::SslCredentials(ssl_opts);
-    auto channel = grpc::CreateChannel(target_ip, creds);
+
+    grpc::ChannelArguments args;
+    args.SetSslTargetNameOverride("localhost"); 
+
+    auto channel = grpc::CreateCustomChannel(target_ip, creds, args);
+
     stub_ = ::kvadra::accelerometer::AccelerometerService::NewStub(channel);
 }
 
@@ -62,7 +68,14 @@ void ClientB_Core::processLoop() {
     ::kvadra::accelerometer::AccelModule module;
 
     while (stream_->Read(&packet)) {
+        if (packet.version() != 1) {
+            LOGE("Внимание! Получен пакет неизвестной версии: %d. Пропускаем.", packet.version());
+            continue;
+        }
+
         float mod_val = common::MathUtils::calculateModule(packet.x(), packet.y(), packet.z());
+        
+        module.set_version(1);
         
         module.set_timestamp(packet.timestamp());
         module.set_module(mod_val);

@@ -1,3 +1,5 @@
 build/
 certs/
 build_android/
+android_app/app/src/main/assets
+*.so

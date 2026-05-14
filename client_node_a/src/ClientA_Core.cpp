@@ -1,3 +1,4 @@
+//ClientA_Core.cpp
 #include "ClientA_Core.h"
 #include "AuthInterceptor.h"
 #include <android/log.h>
@@ -22,7 +23,12 @@ ClientA_Core::ClientA_Core(const std::string& target_ip,
     ssl_opts.pem_private_key = client_key;
 
     auto creds = grpc::SslCredentials(ssl_opts);
-    auto channel = grpc::CreateChannel(target_ip, creds);
+
+    grpc::ChannelArguments args;
+    args.SetSslTargetNameOverride("localhost"); 
+    
+    auto channel = grpc::CreateCustomChannel(target_ip, creds, args);
+
     stub_ = accelerometer::AccelerometerService::NewStub(channel);
 }
 
@@ -63,6 +69,9 @@ void ClientA_Core::stop() {
 
 void ClientA_Core::onSensorData(int64_t timestamp, float x, float y, float z) {
     accelerometer::AccelPacket packet;
+    
+    packet.set_version(1); 
+    
     packet.set_timestamp(timestamp);
     packet.set_x(x);
     packet.set_y(y);
@@ -76,8 +85,9 @@ void ClientA_Core::onSensorData(int64_t timestamp, float x, float y, float z) {
 void ClientA_Core::receiveLoop() {
     accelerometer::AccelModule module;
     while (stream_->Read(&module)) {
+        if (module.version() != 1) { LOGE("Получена неизвестная версия модуля!"); continue; }
+        
         logger_.log(module.timestamp(), module.module());
-        // LOGI("Записан модуль: %f", module.module());
     }
     
     grpc::Status status = stream_->Finish();
